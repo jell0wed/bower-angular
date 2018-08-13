@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.5
+ * @license AngularJS v1.5.12-local+sha.8610f6f13
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.5/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.8610f6f13/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,10 +2479,10 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.5',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.8610f6f13',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
-  dot: 5,
+  dot: 12,
   codeName: 'snapshot'
 };
 
@@ -10624,8 +10624,8 @@ function $HttpProvider() {
    **/
   var interceptorFactories = this.interceptors = [];
 
-  this.$get = ['$httpBackend', '$$cookieReader', '$cacheFactory', '$rootScope', '$q', '$$q', '$injector',
-      function($httpBackend, $$cookieReader, $cacheFactory, $rootScope, $q, $$q, $injector) {
+  this.$get = ['$httpBackend', '$$cookieReader', '$cacheFactory', '$rootScope', '$q', '$injector',
+      function($httpBackend, $$cookieReader, $cacheFactory, $rootScope, $q, $injector) {
 
     var defaultCache = $cacheFactory('$http');
 
@@ -11228,7 +11228,7 @@ function $HttpProvider() {
       };
 
       var chain = [serverRequest, undefined];
-      var promise = (config.skipApply ? $$q : $q).when(config);
+      var promise = $q.when(config);
 
       // apply interceptors
       forEach(reversedInterceptors, function(interceptor) {
@@ -11279,7 +11279,7 @@ function $HttpProvider() {
                                   config.transformResponse);
         return (isSuccess(response.status))
           ? resp
-          : (config.skipApply ? $$q : $q).reject(resp);
+          : $q.reject(resp);
       }
 
       function executeHeaderFns(headers, config) {
@@ -11465,7 +11465,7 @@ function $HttpProvider() {
      * $httpBackend, defaults, $log, $rootScope, defaultCache, $http.pendingRequests
      */
     function sendReq(config, reqData) {
-      var deferred = (config.skipApply ? $$q : $q).defer(),
+      var deferred = $q.defer(),
           promise = deferred.promise,
           cache,
           cachedResp,
@@ -11514,7 +11514,7 @@ function $HttpProvider() {
           reqHeaders[(config.xsrfHeaderName || defaults.xsrfHeaderName)] = xsrfValue;
         }
 
-        $httpBackend(config.method, url, reqData, getDoneCallback(config.skipApply), reqHeaders, config.timeout,
+        $httpBackend(config.method, url, reqData, done, reqHeaders, config.timeout,
             config.withCredentials, config.responseType,
             createApplyHandlers(config.eventHandlers),
             createApplyHandlers(config.uploadEventHandlers));
@@ -11546,41 +11546,30 @@ function $HttpProvider() {
 
 
       /**
-        * Returns the callback registered to $httpBackend() with a closure on skipApply
-      */
-      function getDoneCallback(skipApply) {
-        /**
-         * Callback registered to $httpBackend():
-         *  - caches the response if desired
-         *  - resolves the raw $http promise
-         *  - calls $apply
-         */
-        return function done(status, response, headersString, statusText) {
-          if (cache) {
-            if (isSuccess(status)) {
-              cache.put(url, [status, response, parseHeaders(headersString), statusText]);
-            } else {
-              // remove promise from the cache
-              cache.remove(url);
-            }
-          }
-
-          function resolveHttpPromise() {
-            resolvePromise(response, status, headersString, statusText);
-          }
-
-          if (skipApply) {
-            // if skipApply is true,
-            // resolve the promise without evalAsync or $rootScope.apply()
-            resolveHttpPromise();
+       * Callback registered to $httpBackend():
+       *  - caches the response if desired
+       *  - resolves the raw $http promise
+       *  - calls $apply
+       */
+      function done(status, response, headersString, statusText) {
+        if (cache) {
+          if (isSuccess(status)) {
+            cache.put(url, [status, response, parseHeaders(headersString), statusText]);
           } else {
-            if (useApplyAsync) {
-              $rootScope.$applyAsync(resolveHttpPromise);
-            } else {
-              resolveHttpPromise();
-              if (!$rootScope.$$phase) $rootScope.$apply();
-            }
+            // remove promise from the cache
+            cache.remove(url);
           }
+        }
+
+        function resolveHttpPromise() {
+          resolvePromise(response, status, headersString, statusText);
+        }
+
+        if (useApplyAsync) {
+          $rootScope.$applyAsync(resolveHttpPromise);
+        } else {
+          resolveHttpPromise();
+          if (!$rootScope.$$phase) $rootScope.$apply();
         }
       }
 
@@ -15900,7 +15889,7 @@ function $$QProvider() {
  */
 function qFactory(nextTick, exceptionHandler) {
   var $qMinErr = minErr('$q', TypeError);
-
+  window.promisesCount = 0;
   /**
    * @ngdoc method
    * @name ng.$q#defer
@@ -15911,8 +15900,8 @@ function qFactory(nextTick, exceptionHandler) {
    *
    * @returns {Deferred} Returns a new instance of deferred.
    */
-  var defer = function() {
-    var d = new Deferred();
+  var defer = function(trackPromise) {
+    var d = new Deferred(trackPromise);
     //Necessary to support unbound execution :/
     d.resolve = simpleBind(d, d.resolve);
     d.reject = simpleBind(d, d.reject);
@@ -15920,8 +15909,13 @@ function qFactory(nextTick, exceptionHandler) {
     return d;
   };
 
-  function Promise() {
+  function Promise(trackPromise) {
     this.$$state = { status: 0 };
+  
+    this.trackPromise = typeof(trackPromise) !== 'undefined' ? trackPromise : true;
+    if(this.trackPromise) {
+      window.promisesCount++;
+    }
   }
 
   extend(Promise.prototype, {
@@ -15929,7 +15923,7 @@ function qFactory(nextTick, exceptionHandler) {
       if (isUndefined(onFulfilled) && isUndefined(onRejected) && isUndefined(progressBack)) {
         return this;
       }
-      var result = new Deferred();
+      var result = new Deferred(this.trackPromise);
 
       this.$$state.pending = this.$$state.pending || [];
       this.$$state.pending.push([result, onFulfilled, onRejected, progressBack]);
@@ -15988,8 +15982,8 @@ function qFactory(nextTick, exceptionHandler) {
     nextTick(function() { processQueue(state); });
   }
 
-  function Deferred() {
-    this.promise = new Promise();
+  function Deferred(trackPromises) {
+    this.promise = new Promise(trackPromises);
   }
 
   extend(Deferred.prototype, {
@@ -16018,6 +16012,9 @@ function qFactory(nextTick, exceptionHandler) {
         } else {
           this.promise.$$state.value = val;
           this.promise.$$state.status = 1;
+          if(this.promise.trackPromise) {
+            window.promisesCount--;
+          }
           scheduleProcessQueue(this.promise.$$state);
         }
       } catch (e) {
@@ -16043,9 +16040,15 @@ function qFactory(nextTick, exceptionHandler) {
     },
 
     $$reject: function(reason) {
-      this.promise.$$state.value = reason;
-      this.promise.$$state.status = 2;
-      scheduleProcessQueue(this.promise.$$state);
+      try {
+        this.promise.$$state.value = reason;
+        this.promise.$$state.status = 2;
+        scheduleProcessQueue(this.promise.$$state);
+      } finally {
+        if(this.trackPromise) {
+          window.promisesCount--;
+        }
+      }
     },
 
     notify: function(progress) {
