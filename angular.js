@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.12-local+sha.8610f6f13
+ * @license AngularJS v1.5.12-local+sha.84b8bebef
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.8610f6f13/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.84b8bebef/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,7 +2479,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.12-local+sha.8610f6f13',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.84b8bebef',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
   dot: 12,
@@ -15909,6 +15909,10 @@ function qFactory(nextTick, exceptionHandler) {
     return d;
   };
 
+  var countPromises = function() {
+    return promisesCount;
+  }
+
   function Promise(trackPromise) {
     this.$$state = { status: 0 };
   
@@ -16250,6 +16254,7 @@ function qFactory(nextTick, exceptionHandler) {
   $Q.when = when;
   $Q.resolve = resolve;
   $Q.all = all;
+  $Q.promisesCount = countPromises;
 
   return $Q;
 }
