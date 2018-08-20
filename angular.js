@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.12-local+sha.d8fb13cfc
+ * @license AngularJS v1.5.12-local+sha.1ebd90f06
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.d8fb13cfc/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.1ebd90f06/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,7 +2479,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.12-local+sha.d8fb13cfc',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.1ebd90f06',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
   dot: 12,
@@ -16032,7 +16032,7 @@ function qFactory(nextTick, exceptionHandler) {
           if(this.promise.trackPromise) {
             window.promises.angular.pendingCount--;
             if(window.desktop && window.WeakReference) {
-              window.promises.pending.set(this.promise.key, undefined);
+              //window.promises.pending.set(this.promise.key, undefined);
             }
           }
           scheduleProcessQueue(this.promise.$$state);
@@ -16068,7 +16068,7 @@ function qFactory(nextTick, exceptionHandler) {
         if(this.promise.trackPromise) {
           window.promises.angular.pendingCount--;
           if(window.desktop && window.WeakReference) {
-            window.promises.pending.set(this.promise.key, undefined);
+            //window.promises.pending.set(this.promise.key, undefined);
           }
         }
       }
