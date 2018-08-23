@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.12-local+sha.1ebd90f06
+ * @license AngularJS v1.5.12-local+sha.0cd3e1c7e
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.1ebd90f06/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.0cd3e1c7e/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,7 +2479,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.12-local+sha.1ebd90f06',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.0cd3e1c7e',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
   dot: 12,
@@ -15900,7 +15900,7 @@ function $$QProvider() {
  */
 function qFactory(nextTick, exceptionHandler) {
   var $qMinErr = minErr('$q', TypeError);
-  window.promises = window.promises || {pending: new Map()};
+  window.promises = window.promises || {};
   window.promises.angular = window.promises.angular || {pendingCount: 0};
   
   /**
@@ -15928,10 +15928,6 @@ function qFactory(nextTick, exceptionHandler) {
     this.trackPromise = typeof(trackPromise) !== 'undefined' ? trackPromise : true;
     if(this.trackPromise) {
       window.promises.angular.pendingCount++;
-      if(window.desktop && window.WeakReference) {
-        //this.key = '_' + Math.random().toString(36).substr(2, 9);
-        //window.promises.pending.set(this.key, new window.WeakReference(this));
-      }
     }
   }
 
@@ -16031,9 +16027,6 @@ function qFactory(nextTick, exceptionHandler) {
           this.promise.$$state.status = 1;
           if(this.promise.trackPromise) {
             window.promises.angular.pendingCount--;
-            if(window.desktop && window.WeakReference) {
-              //window.promises.pending.set(this.promise.key, undefined);
-            }
           }
           scheduleProcessQueue(this.promise.$$state);
         }
@@ -16067,9 +16060,6 @@ function qFactory(nextTick, exceptionHandler) {
       } finally {
         if(this.promise.trackPromise) {
           window.promises.angular.pendingCount--;
-          if(window.desktop && window.WeakReference) {
-            //window.promises.pending.set(this.promise.key, undefined);
-          }
         }
       }
     },
