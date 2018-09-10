@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.5
+ * @license AngularJS v1.5.6
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.5/' +
+    message += '\nhttp://errors.angularjs.org/1.5.6/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,10 +2479,10 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.5',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.6',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
-  dot: 5,
+  dot: 6,
   codeName: 'snapshot'
 };
 
@@ -12402,6 +12402,28 @@ function $IntervalProvider() {
       }
       return false;
     };
+    
+    
+    /**
+     * @ngdoc method
+     * @name $interval#cancelAll
+     *
+     * @description
+     * Cancels all intervals that are still pending
+     *
+     * @returns {boolean} Returns `true` if all timeouts were successfully cancelled, `false` otherwise
+     */
+    interval.cancelAll = function() {
+      var errorOccurred = false;
+      for (var $$intervalId in intervals) {
+        try {
+          interval.cancel(intervals[$$intervalId].promise);
+        } catch (err) {
+          errorOccurred = true;
+        }
+      }
+      return !errorOccurred && equals({}, intervals);
+    };
 
     return interval;
   }];
@@ -19203,6 +19225,28 @@ function $TimeoutProvider() {
         return $browser.defer.cancel(promise.$$timeoutId);
       }
       return false;
+    };
+    
+    
+    /**
+    * @ngdoc method
+    * @name $timeout#cancelAll
+    *
+    * @description
+    * Cancels all timeouts that are still pending
+    *
+    * @returns {boolean} Returns true if all timeouts were successfully cancelled, false otherwise
+    */
+    timeout.cancelAll = function() {
+      var errorOccurred = false;
+      for (var $$timeoutId in deferreds) {
+        try {
+          timeout.cancel(deferreds[$$timeoutId].promise);
+        } catch (err) {
+          errorOccurred = true;
+        }
+      }
+      return !errorOccurred && equals({}, deferreds);
     };
 
     return timeout;
