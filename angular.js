@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.12-local+sha.0cd3e1c7e
+ * @license AngularJS v1.5.12-local+sha.00c936218
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.0cd3e1c7e/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.00c936218/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,7 +2479,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.12-local+sha.0cd3e1c7e',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.00c936218',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
   dot: 12,
@@ -2607,6 +2607,7 @@ function publishExternalAPI(angular) {
         $log: $LogProvider,
         $parse: $ParseProvider,
         $rootScope: $RootScopeProvider,
+        $$qPromiseTracker: $$QPromiseTrackerProvider,
         $q: $QProvider,
         $$q: $$QProvider,
         $sce: $SceProvider,
@@ -15659,6 +15660,39 @@ function $ParseProvider() {
 
 /**
  * @ngdoc service
+ * @name $$qPromiseTracker
+ *
+ * @description
+ * Tracks active promises by tracking and untracking promises as they are created,
+ * rejected or resolved. 
+ *
+ */
+function $$QPromiseTrackerProvider() {
+    var pendingPromisesCount = 0;
+
+    var trackNewPromise = function(promise) {
+        pendingPromisesCount++;
+    };
+
+    var untrackPromise = function(promise) {
+        pendingPromisesCount--;
+    };
+
+    var getPendingPromisesCount = function() {
+        return pendingPromisesCount;
+    };
+
+    this.$get = function() {
+        return {
+            track: trackNewPromise,
+            untrack: untrackPromise,
+            getCount: getPendingPromisesCount
+        };
+    }
+}
+
+/**
+ * @ngdoc service
  * @name $q
  * @requires $rootScope
  *
@@ -15875,18 +15909,18 @@ function $ParseProvider() {
  */
 function $QProvider() {
 
-  this.$get = ['$rootScope', '$exceptionHandler', function($rootScope, $exceptionHandler) {
+  this.$get = ['$rootScope', '$exceptionHandler', '$$qPromiseTracker', function($rootScope, $exceptionHandler, $$qPromiseTracker) {
     return qFactory(function(callback) {
       $rootScope.$evalAsync(callback);
-    }, $exceptionHandler);
+    }, $exceptionHandler, $$qPromiseTracker);
   }];
 }
 
 function $$QProvider() {
-  this.$get = ['$browser', '$exceptionHandler', function($browser, $exceptionHandler) {
+  this.$get = ['$browser', '$exceptionHandler', '$$qPromiseTracker', function($browser, $exceptionHandler, $$qPromiseTracker) {
     return qFactory(function(callback) {
       $browser.defer(callback);
-    }, $exceptionHandler);
+    }, $exceptionHandler, $$qPromiseTracker);
   }];
 }
 
@@ -15898,11 +15932,9 @@ function $$QProvider() {
  *     debugging purposes.
  * @returns {object} Promise manager.
  */
-function qFactory(nextTick, exceptionHandler) {
+function qFactory(nextTick, exceptionHandler, promiseTracker) {
   var $qMinErr = minErr('$q', TypeError);
-  window.promises = window.promises || {};
-  window.promises.angular = window.promises.angular || {pendingCount: 0};
-  
+
   /**
    * @ngdoc method
    * @name ng.$q#defer
@@ -15913,22 +15945,20 @@ function qFactory(nextTick, exceptionHandler) {
    *
    * @returns {Deferred} Returns a new instance of deferred.
    */
-  var defer = function(trackPromise) {
-    var d = new Deferred(trackPromise);
+  var defer = function() {
+    var d = new Deferred();
     //Necessary to support unbound execution :/
     d.resolve = simpleBind(d, d.resolve);
     d.reject = simpleBind(d, d.reject);
     d.notify = simpleBind(d, d.notify);
     return d;
-  }
+  };
 
-  function Promise(trackPromise) {
+  function Promise() {
     this.$$state = { status: 0 };
-  
-    this.trackPromise = typeof(trackPromise) !== 'undefined' ? trackPromise : true;
-    if(this.trackPromise) {
-      window.promises.angular.pendingCount++;
-    }
+
+    // some built-in angular module may use promises when the dependencies are not yet loaded, make sure not to track those
+    promiseTracker && promiseTracker.track(this);
   }
 
   extend(Promise.prototype, {
@@ -15936,7 +15966,7 @@ function qFactory(nextTick, exceptionHandler) {
       if (isUndefined(onFulfilled) && isUndefined(onRejected) && isUndefined(progressBack)) {
         return this;
       }
-      var result = new Deferred(false); // do not track then as separate promises
+      var result = new Deferred();
 
       this.$$state.pending = this.$$state.pending || [];
       this.$$state.pending.push([result, onFulfilled, onRejected, progressBack]);
@@ -15995,8 +16025,8 @@ function qFactory(nextTick, exceptionHandler) {
     nextTick(function() { processQueue(state); });
   }
 
-  function Deferred(trackPromise) {
-    this.promise = new Promise(trackPromise);
+  function Deferred() {
+    this.promise = new Promise();
   }
 
   extend(Deferred.prototype, {
@@ -16025,9 +16055,8 @@ function qFactory(nextTick, exceptionHandler) {
         } else {
           this.promise.$$state.value = val;
           this.promise.$$state.status = 1;
-          if(this.promise.trackPromise) {
-            window.promises.angular.pendingCount--;
-          }
+
+          promiseTracker && promiseTracker.untrack(this.promise);
           scheduleProcessQueue(this.promise.$$state);
         }
       } catch (e) {
@@ -16053,15 +16082,11 @@ function qFactory(nextTick, exceptionHandler) {
     },
 
     $$reject: function(reason) {
-      try {
-        this.promise.$$state.value = reason;
-        this.promise.$$state.status = 2;
-        scheduleProcessQueue(this.promise.$$state);
-      } finally {
-        if(this.promise.trackPromise) {
-          window.promises.angular.pendingCount--;
-        }
-      }
+      this.promise.$$state.value = reason;
+      this.promise.$$state.status = 2;
+
+      promiseTracker && promiseTracker.untrack(this.promise);
+      scheduleProcessQueue(this.promise.$$state);
     },
 
     notify: function(progress) {
