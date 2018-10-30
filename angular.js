@@ -1,5 +1,5 @@
 /**
- * @license AngularJS v1.5.12-local+sha.00c936218
+ * @license AngularJS v1.5.12-local+sha.b8bd64214
  * (c) 2010-2016 Google, Inc. http://angularjs.org
  * License: MIT
  */
@@ -57,7 +57,7 @@ function minErr(module, ErrorConstructor) {
       return match;
     });
 
-    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.00c936218/' +
+    message += '\nhttp://errors.angularjs.org/1.5.12-local+sha.b8bd64214/' +
       (module ? module + '/' : '') + code;
 
     for (i = SKIP_INDEXES, paramPrefix = '?'; i < templateArgs.length; i++, paramPrefix = '&') {
@@ -2479,7 +2479,7 @@ function toDebugString(obj) {
  * - `codeName` – `{string}` – Code name of the release, such as "jiggling-armfat".
  */
 var version = {
-  full: '1.5.12-local+sha.00c936218',    // all of these placeholder strings will be replaced by grunt's
+  full: '1.5.12-local+sha.b8bd64214',    // all of these placeholder strings will be replaced by grunt's
   major: 1,    // package task
   minor: 5,
   dot: 12,
@@ -15665,28 +15665,17 @@ function $ParseProvider() {
  * @description
  * Tracks active promises by tracking and untracking promises as they are created,
  * rejected or resolved. 
+ * 
+ * By default, this does not track any promises that gets created.
+ * To use this API, one must override the `$$qPromiseTracker` at config time
+ * and provide their own tracking implementation using `$provide`.
  *
  */
 function $$QPromiseTrackerProvider() {
-    var pendingPromisesCount = 0;
-
-    var trackNewPromise = function(promise) {
-        pendingPromisesCount++;
-    };
-
-    var untrackPromise = function(promise) {
-        pendingPromisesCount--;
-    };
-
-    var getPendingPromisesCount = function() {
-        return pendingPromisesCount;
-    };
-
     this.$get = function() {
         return {
-            track: trackNewPromise,
-            untrack: untrackPromise,
-            getCount: getPendingPromisesCount
+            track: angular.noop,
+            untrack: angular.noop
         };
     }
 }
@@ -15958,7 +15947,7 @@ function qFactory(nextTick, exceptionHandler, promiseTracker) {
     this.$$state = { status: 0 };
 
     // some built-in angular module may use promises when the dependencies are not yet loaded, make sure not to track those
-    promiseTracker && promiseTracker.track(this);
+    promiseTracker.track(this);
   }
 
   extend(Promise.prototype, {
@@ -16056,7 +16045,7 @@ function qFactory(nextTick, exceptionHandler, promiseTracker) {
           this.promise.$$state.value = val;
           this.promise.$$state.status = 1;
 
-          promiseTracker && promiseTracker.untrack(this.promise);
+          promiseTracker.untrack(this.promise);
           scheduleProcessQueue(this.promise.$$state);
         }
       } catch (e) {
@@ -16085,7 +16074,7 @@ function qFactory(nextTick, exceptionHandler, promiseTracker) {
       this.promise.$$state.value = reason;
       this.promise.$$state.status = 2;
 
-      promiseTracker && promiseTracker.untrack(this.promise);
+      promiseTracker.untrack(this.promise);
       scheduleProcessQueue(this.promise.$$state);
     },
 
